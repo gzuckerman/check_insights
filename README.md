@@ -1,5 +1,5 @@
 # What is check_insights?
-It's a small python tool which allows you to do some simple integration to Red Hat Insights locally in a shell on your Red Hat Enterprise Linux 8 server.
+It's a small python tool (``check_python.py``) which allows you to do some simple integration to Red Hat Insights locally in a shell on your Red Hat Enterprise Linux 8 server.
 
 ## Contributing
 Please send me pull request if you can improve this tool. Design priciple is: keep it simple. Atm. there are no plans to turn the tool into a Red Hat Insight swish army knife.
@@ -23,7 +23,8 @@ The tools integrates out-of-the-box with popular open source monitoring solution
 If we breach critical level for one of the items above, we exit indicating critical state, also if other items are OK.
 
 ## Usage
-Run
+1) Download check_insights.py.
+2) Run
 ```
 # python3 ./check_insights.py --help
 ```
@@ -77,3 +78,20 @@ Total issues: 2. Security issues: 1. Availability issues: 0. Stability issues: 0
 #
 ```
 
+## Example Nagios command definition
+```
+define command {
+    command_name    check_insights
+    command_line    /usr/bin/sudo /usr/bin/python3 $USER1$/check_insights.py --mon true
+}
+```
+
+## Example Nagios service definition
+```
+define service {
+    use                 local-service
+    host_name           localhost
+    service_description Red Hat Insights
+    check_command       check_insights
+}
+```
