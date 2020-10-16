@@ -26,7 +26,7 @@ The tools integrates out-of-the-box with popular open source monitoring solution
 
 If we breach critical level for one of the items above, we exit indicating critical state, also if other items are OK.
 
-## Usage
+## Usage and view default values
 1) Download check_insights.py.
 2) Run
 ```
