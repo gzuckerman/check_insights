@@ -16,7 +16,7 @@ Running ``check_insights.py`` with ``--mon true`` enters the tool into monitorin
 * Number of stability related issues
 * Number of availability related issues
 
-You can then also for each of above things set custom thresholds for warning and critical, if warning or critical levels are reached, the tool exists with a different non-zero exit codes (which you can customize, if you like). 
+You can then also for each of above things set custom thresholds for warning and critical, if warning or critical levels are reached, the tool exists with a non-zero exit code to indicate OK, wanring or critical. You can customize exit codes if you like. 
 
 The tools integrates out-of-the-box with popular open source monitoring solution Nagios as it uses the default exit codes to indicate warning (1) and critical (2) and unknown (3) in Nagios.
 
