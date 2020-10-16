@@ -8,7 +8,11 @@ Please send me pull request if you can improve this tool. Design priciple is: ke
 Running ``check_insights.py`` without arguments uses the normal mode, which simply displays numbers of identified issues found in Red Hat Insights.
 
 ## Monitoring mode
-Running ``check_insights.py`` with ``--mon true`` enters the tool into monitoring mode. In monitoring mode the tool looks at:
+Running ``check_insights.py`` with ``--mon true`` enters the tool into monitoring mode. It allows for a simple integration from Red Hat Insights to you monitoring tool of choice. Below, example integration with Nagios is shown.
+
+![Example integration to Nagios](nagios-insights.png)
+
+In monitoring mode the tool looks at:
 
 * Total number of issues for your system
 * Number of security related issues
