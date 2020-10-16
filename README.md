@@ -63,7 +63,6 @@ Total issues: 2. Security issues: 1. Availability issues: 0. Stability issues: 0
 # echo $?
 2
 #
-
 ```
 
 ## Run in monitoring mode, supressing alerts for all but one item
