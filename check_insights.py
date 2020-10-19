@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 # Name: check_insight.py
 #
 # Description: Print out summary of detected issues received from Red Hat Insight
