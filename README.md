@@ -4,6 +4,16 @@ It's a small python tool (``check_python.py``) which allows you to do some simpl
 ## Contributing
 Please send me pull request if you can improve this tool. Design priciple is: keep it simple. Atm. there are no plans to turn the tool into a Red Hat Insight swish army knife.
 
+# Prerequisite
+Install Red Hat Insights and register, see: https://access.redhat.com/products/red-hat-insights#getstarted
+
+## Installation
+* Download the check_insights.py script
+```
+$ wget https://raw.githubusercontent.com/mglantz/check_insights/main/check_insights.py -O check_insights.py
+```
+* Put the script on the servers you want to monitor.
+
 ## Normal mode
 Running ``check_insights.py`` without arguments uses the normal mode, which simply displays numbers of identified issues found in Red Hat Insights.
 
