@@ -167,7 +167,7 @@ if args.output == 'json':
           ' }', sep="")
 else:
     print('Total issues: ', total_issues,
-          '.Security issues: ', security_issues,
+          '. Security issues: ', security_issues,
           '. Availability issues: ', availability_issues,
           '. Stability issues: ', stability_issues,
           '. Performance issues: ', performance_issues,
