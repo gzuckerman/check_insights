@@ -138,3 +138,9 @@ Also, add sudo configuration for the NRPE user. If do not do that, the check fai
 NRPE: Unable to read output
 ```
 
+Example sudoers configuration:
+```
+Defaults:nrpe !requiretty
+nrpe          ALL=(ALL) NOPASSWD: /usr/lib64/nagios/plugins/check_insights.py --mon true
+```
+
