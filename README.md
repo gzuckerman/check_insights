@@ -48,7 +48,7 @@ If we breach critical level for one of the items above, we exit indicating criti
 Here's a list of example use-cases.
 
 ## Check if Red Hat Insights is reporting issues for your system.
-./check_insights.py
+check_insights.py
 
 Example:
 ```
@@ -57,8 +57,18 @@ Total issues: 2. Security issues: 1. Availability issues: 0. Stability issues: 0
 #
 ```
 
+## Print output as JSON
+check_insights.py -o json
+
+Example:
+```
+# ./check_insights.py -o json
+{ 'total': 2, 'security': 1, 'availability': 0, 'stability': 0, 'performance': 1 }
+#
+```
+
 ## Run in monitoring mode, using default values only.
-./check_insights.py --mon true
+check_insights.py --mon true
 
 Example:
 ```
@@ -70,7 +80,7 @@ Total issues: 2. Security issues: 1. Availability issues: 0. Stability issues: 0
 ```
 
 ## Run in monitoring mode, using custom values.
-./check_insights.py --mon true --ctot 10 --wtot 7 --csec 1 --wsec 1 --cavail 3 --wavail 2 --cstab 3 --cstab 2 --cperf 3 --wperf 2 
+check_insights.py --mon true --ctot 10 --wtot 7 --csec 1 --wsec 1 --cavail 3 --wavail 2 --cstab 3 --cstab 2 --cperf 3 --wperf 2 
 
 Example:
 ```
@@ -82,7 +92,7 @@ Total issues: 2. Security issues: 1. Availability issues: 0. Stability issues: 0
 ```
 
 ## Run in monitoring mode, supressing alerts for all but one item
-./check_insights.py --mon true --ctot 99999 --wtot 99999 --csec 1 --wsec 1 --cavail 99999 --wavail 99999 --cstab 99999 --cstab 99999 --cperf 99999 --wperf 99999 
+check_insights.py --mon true --ctot 99999 --wtot 99999 --csec 1 --wsec 1 --cavail 99999 --wavail 99999 --cstab 99999 --cstab 99999 --cperf 99999 --wperf 99999 
 
 Example:
 ```
