@@ -101,7 +101,7 @@ define command {
 }
 ```
 
-## Example Nagios service definition
+## Example Nagios local service definition
 ```
 define service {
     use                 local-service
@@ -110,3 +110,31 @@ define service {
     check_command       check_insights
 }
 ```
+
+## Example Nagios NRPE command / service definition
+On the Nagios server, please note the 60 second timeout, as check_insights.py takes longer than 10 seconds to execute:
+```
+define command {
+    command_name    check_nrpe
+    command_line    $USER1$/check_nrpe -t 60 -H $HOSTADDRESS$ -c $ARG1$
+}
+
+define service {
+    use                     local-service
+    host_name               REPLACE-ME
+    service_description     Red Hat Insights
+    check_command           check_nrpe!check_insights
+}
+```
+
+## Example NRPE command definition
+On monitored systems, add to ``/etc/nagios/nrpe.cfg``:
+```
+command[check_insights]=sudo /usr/lib64/nagios/plugins/check_insights.py --mon true
+```
+Also, add sudo configuration for the NRPE user. If do not do that, the check fails with below error message:
+```
+# ./check_nrpe -H rhel81a.sudo.net -c check_insights
+NRPE: Unable to read output
+```
+
