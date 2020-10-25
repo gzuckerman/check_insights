@@ -101,6 +101,12 @@ except subprocess.CalledProcessError:
     print('Unknown: insights-client failed to check in. Run: insights-client for more information.')
     sys.exit(3)
 
+try:
+    subprocess.run(['insights-client', '--check-result'], check = True, stdout=DEVNULL, stderr=DEVNULL)
+except subprocess.CalledProcessError:
+    print('Unknown: insights-client failed to check result. Run: insights-client --check-result for more information.')
+    sys.exit(3)
+
 # Remove stdout file
 if os.path.isfile('/tmp/insights-result'):
     os.remove('/tmp/insights-result')
@@ -167,3 +173,4 @@ if mon == "true" or mon == "True":
 # If we're here, all went OK and we exit with 0
     else:
         sys.exit(0)
+
