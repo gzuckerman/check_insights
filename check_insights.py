@@ -37,6 +37,7 @@ parser.add_argument('--wperf', metavar='0-999', type=int, default=1, help='Sets 
 parser.add_argument('--cperf', metavar='0-999', type=int, default=3, help='Sets critical level for performance issues, nr of issues. Default: 3')
 parser.add_argument('--wexit', metavar='0-999', type=int, default=1, help='Sets exit code for warning. Nagios compliant default: 1')
 parser.add_argument('--cexit', metavar='0-999', type=int, default=2, help='Sets exit code for critical. Nagios compliant default: 2')
+parser.add_argument('-o', '--output', default="text", choices=['text', 'json'], help='Do you want output as text or json?')
 args = parser.parse_args()
 
 # Passed arguments
@@ -157,7 +158,20 @@ for item in datastore:
     if item['rule']['category']['name'] == "Availability":
         availability_issues += 1
 
-print('Total issues: ',total_issues,'. Security issues: ', security_issues,'. Availability issues: ', availability_issues, '. Stability issues: ', stability_issues, '. Performance issues: ', performance_issues, sep="")
+if args.output == 'json':
+    print('{ \'total\': ', total_issues,
+          ', \'security\': ', security_issues,
+          ', \'availability\': ', availability_issues,
+          ', \'stability\': ', stability_issues,
+          ', \'performance\': ', performance_issues,
+          ' }', sep="")
+else:
+    print('Total issues: ', total_issues,
+          '.Security issues: ', security_issues,
+          '. Availability issues: ', availability_issues,
+          '. Stability issues: ', stability_issues,
+          '. Performance issues: ', performance_issues,
+          sep="")
 
 # We are not in monitoring mode, so let's exit with 0
 if mon == "false" or mon == "False":
