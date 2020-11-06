@@ -1,92 +1,190 @@
 #!/usr/bin/python3
-# sudo@redhat.com, 2020
-# US Presidental election data tool, spits out useful info regarding the presidental vote in a specific state
+# Name: check_insight.py
+#
+# Description: Print out summary of detected issues received from Red Hat Insight
+# Prereq: latest version of Red Hat Insight installed on the system and system registered to Satelite or cloud.redhat.com.
+#
+# Author: Magnus Glantz, sudo@redhat.com, 2020
 
 # Import required modules
-import sys
+import sys 
 import os
+import subprocess
+try:
+    import simplejson as json
+except ImportError:
+    import json
+import rpm
 import argparse
-import math
-from datetime import datetime
+
+# We need to discard some info to /dev/null later on
+DEVNULL = open(os.devnull, 'wb')
 
 # Argument parsing and --help
 parser = argparse.ArgumentParser(usage='%(prog)s [options]')
-parser.add_argument('--biden', metavar='N', type=int, default=0, help='Number of votes for Biden')
-parser.add_argument('--trump', metavar='N', type=int, default=0, help='Number of votes for Trump')
-parser.add_argument('--reported', metavar='N', type=int, default=0, help='Total votes reported')
-parser.add_argument('--percent', metavar='N', type=float, default=0, help='Percent votes reported')
-parser.add_argument('--roundup', metavar='true|false', default='true', help='Round down to zero')
+parser.add_argument('--mon', metavar='true|false', default='false', help='Activating monitoring mode enables all below options - otherwise ignored. Default: false')
+parser.add_argument('--wtotal', metavar='0-999', type=int, default=4, help='Sets warning level for total nr of accumulated issues. Default: 4')
+parser.add_argument('--ctotal', metavar='0-999', type=int, default=12, help='Sets critical level for total nr of accumulated issues. Default: 12')
+parser.add_argument('--wall', metavar='0-999', type=int, default=0, help='Overrides all below. Sets same warning level for all types (but not total), nr of issues. Default: 0')
+parser.add_argument('--call', metavar='0-999', type=int, default=0, help='Overrides all below. Sets same critical level for all types (but not total), nr of issues. Default: 0')
+parser.add_argument('--wstab', metavar='0-999', type=int, default=1, help='Sets warning level for stability issues, nr of issues. Default: 1')
+parser.add_argument('--cstab', metavar='0-999', type=int, default=3, help='Sets critical level for stability issues, nr of issues. Default: 3')
+parser.add_argument('--wavail', metavar='0-999', type=int, default=1, help='Sets warning level for availability issues, nr of issues. Default: 1')
+parser.add_argument('--cavail', metavar='0-999', type=int, default=3, help='Sets critical level for availability issues, nr of issues. Default: 3')
+parser.add_argument('--wsec', metavar='0-999', type=int, default=1, help='Sets warning level for security issues, nr of issues. Default: 1')
+parser.add_argument('--csec', metavar='0-999', type=int, default=3, help='Sets critical level for security issues, nr of issues. Default: 3')
+parser.add_argument('--wperf', metavar='0-999', type=int, default=1, help='Sets warning level for performance issues, nr of issues. Default: 1')
+parser.add_argument('--cperf', metavar='0-999', type=int, default=3, help='Sets critical level for performance issues, nr of issues. Default: 3')
+parser.add_argument('--wexit', metavar='0-999', type=int, default=1, help='Sets exit code for warning. Nagios compliant default: 1')
+parser.add_argument('--cexit', metavar='0-999', type=int, default=2, help='Sets exit code for critical. Nagios compliant default: 2')
+parser.add_argument('-o', '--output', default="text", choices=['text', 'json'], help='Do you want output as text or json?')
 args = parser.parse_args()
 
-biden = args.biden
-trump = args.trump
-roundup = args.roundup
-reported = args.reported
-percent = args.percent
-vote_per_percent = (reported / percent)
-total_votes = vote_per_percent * 100
-votes_left = total_votes - reported
+# Passed arguments
+mon = args.mon
 
-dateTimeObj = datetime.now()
-print("Running analysis: ", dateTimeObj)
+# If we are in monitoring mode deal with all the rest of the parameters as well
+if mon == "true":
+    wstab = args.wstab
+    cstab = args.cstab
+    wavail = args.wavail
+    cavail = args.cavail
+    cperf = args.cperf
+    wperf = args.wperf
+    wsec = args.wsec
+    csec = args.csec
+    wexit = args.wexit
+    cexit = args.cexit
+    ctot = args.ctotal
+    wtot = args.wtotal
+    call = args.call
+    wall = args.wall
 
-# Yes, below is a simplification, as we are not considering that remaining 
-# votes may be cast on other candidates than Biden or Trump. Doing so introduces a moving target which takes us to
-# a realm of math I do not master. Feel free to fix if you math skills are better than mine :-)
+# If --wall is set, set all warning levels to whatever was set
+    if wall != 0:
+        wstab = wall
+        wavail = wall
+        wsec = wall
+        wperf = wall
 
-biden_trump = biden + trump
-other = reported - biden_trump
-nother = (total_votes - other) / 2
+# If --call is set, set all critical levels to whatever was set
+    if call != 0:
+        cstab = call
+        cavail = call
+        csec = call
+        cperf = call
 
-# trump needs
-trump_needs = nother - trump + 1
-trump_needs_per = (trump_needs / votes_left)*100
+# Check for the insights-client package, if it's not installed, nothing below will work.
+ts = rpm.TransactionSet()
+mi = ts.dbMatch( 'name', 'insights-client' )
 
-# biden needs
-biden_needs = nother - biden + 1
-biden_needs_per = (biden_needs / votes_left)*100
+rpmhit=0
+for h in mi:
+    if h['name'] == 'insights-client':
+        rpmhit=1
+        break
 
-print("Biden votes: ", biden)
-print("Trump votes: ", trump)
-print("Total votes in: ", reported)
-if ( roundup == "true" ):
-    print("Votes per percent: ", int(vote_per_percent))
+if rpmhit == 0:
+    print('Unknown: Package insights-client not installed (or too old). Install using: dnf install insights-client')
+    sys.exit(3)
+
+# Check if the system has registered to Satellite or cloud.redhat.com
+if not os.path.isfile('/etc/insights-client/.registered'):
+    print('Unknown: You need to register to Red Hat Insights by running: insights-client register')
+    sys.exit(3)
+
+# Remove .lastupload identifier if it exists
+if os.path.isfile('/etc/insights-client/.lastupload'):
+    os.remove('/etc/insights-client/.lastupload')
+        
+try:
+    subprocess.run(['insights-client'], check = True, stdout=DEVNULL, stderr=DEVNULL)
+except subprocess.CalledProcessError:
+    print('Unknown: insights-client failed to check in. Run: insights-client for more information.')
+    sys.exit(3)
+
+try:
+    subprocess.run(['insights-client', '--check-result'], check = True, stdout=DEVNULL, stderr=DEVNULL)
+except subprocess.CalledProcessError:
+    print('Unknown: insights-client failed to check result. Run: insights-client --check-result for more information.')
+    sys.exit(3)
+
+# Remove stdout file
+if os.path.isfile('/tmp/insights-result'):
+    os.remove('/tmp/insights-result')
+
+try:
+    os.system('insights-client --show-result >/tmp/insights-result')
+    if not os.system('insights-client --show-result >/tmp/insight-result') == 0:
+        raise Exception('insights-client command failed')
+except:
+    print('Unknown: insights-client failed to get results. Run: insights-client --show-results for more information.')
+    sys.exit(3)
+
+if not os.path.isfile('/etc/insights-client/.lastupload'):
+    print('Unknown: insights-client failed to get result from cloud.redhat.com. Run: insights-client --show-results for more information.')
+    sys.exit(3)
+
+# Open the existing json file for loading into a variable
+with open('/tmp/insights-result') as f:
+    datastore = json.load(f)
+
+# Count how many hit we have in total
+total_issues = 0
+for rule in datastore:
+    total_issues += 1
+
+# Count how many of those are security issues
+security_issues = 0
+for item in datastore:
+   if item['rule']['category']['name'] == "Security":
+      security_issues += 1
+
+# Count how many of those are performance issues
+performance_issues = 0
+for item in datastore:
+    if item['rule']['category']['name'] == "Performance":
+        performance_issues += 1
+
+# Count how many of those are stability issues
+stability_issues = 0
+for item in datastore:
+    if item['rule']['category']['name'] == "Stability":
+        stability_issues += 1
+
+# Count how many of those are availability issues
+availability_issues = 0
+for item in datastore:
+    if item['rule']['category']['name'] == "Availability":
+        availability_issues += 1
+
+if args.output == 'json':
+    print('{ \'total\': ', total_issues,
+          ', \'security\': ', security_issues,
+          ', \'availability\': ', availability_issues,
+          ', \'stability\': ', stability_issues,
+          ', \'performance\': ', performance_issues,
+          ' }', sep="")
 else:
-    print("Votes per percent: ", vote_per_percent)
+    print('Total issues: ', total_issues,
+          '. Security issues: ', security_issues,
+          '. Availability issues: ', availability_issues,
+          '. Stability issues: ', stability_issues,
+          '. Performance issues: ', performance_issues,
+          sep="")
 
-if ( roundup == "true" ):
-    print("Total votes: ", int(total_votes))
-else:
-    print("Total votes: ", total_votes)
+# We are not in monitoring mode, so let's exit with 0
+if mon == "false" or mon == "False":
+    sys.exit(0)
 
-if ( roundup == "true" ):
-    print("Votes left to report: ", int(votes_left))
-else:
-    print("Votes left to report: ", votes_left)
-
-if ( biden > trump ):
-    diff = biden - trump
-    print("Biden leads with ", diff, "votes")
-    if ( roundup == "true" ):
-        print("Trump needs number of votes: ", int(trump_needs))
+# If monitoring mode has been activated, let's evaluate warning and critical levels and exit accordingly
+if mon == "true" or mon == "True":
+# If something has hit critical levels, we exit with critical exit code
+    if total_issues >= ctot or security_issues >= csec or availability_issues >= cavail or stability_issues >= cstab or performance_issues >= cperf:
+        sys.exit(cexit)
+# If something has hit warning levels, we exit with warning exit code
+    elif total_issues >= wtot or security_issues >= wsec or availability_issues >= wavail or stability_issues >= wstab or performance_issues >= wperf:
+        sys.exit(wexit)
+# If we're here, all went OK and we exit with 0
     else:
-        print("Trump needs number of votes: ", trump_needs)
-    print("Trump needs % of vote left: ", trump_needs_per)
-    if ( votes_left > diff ):
-        print("Trump can still win.")
-    else:
-        print("Biden won the state.")
-
-if ( trump > biden ):
-    diff = trump - biden
-    print("Trump leads with ", diff, "votes")
-    if ( roundup == "true" ):
-        print("Biden needs number of votes: ", int(biden_needs))
-    else:
-        print("Biden needs number of votes: ", biden_needs)
-    print("Biden needs % of vote left: ", biden_needs_per)
-    if ( votes_left > diff ):
-        print("Biden can still win.")
-    else:
-        print("Trump won the state.")
-
+        sys.exit(0)
